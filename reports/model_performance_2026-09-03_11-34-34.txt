@@ -1,0 +1,54 @@
+======================================================================
+  EMIPREDICT AI - MODEL PERFORMANCE REPORT
+======================================================================
+Generated: 2026-09-03 11:34:34
+======================================================================
+
+CLASSIFICATION MODELS
+----------------------------------------
+
+Logistic_Regression:
+  accuracy: 0.9975
+  precision_macro: 0.9817
+  recall_macro: 0.9987
+  f1_macro: 0.9900
+  roc_auc: 1.0000
+
+Random_Forest:
+  accuracy: 1.0000
+  precision_macro: 1.0000
+  recall_macro: 1.0000
+  f1_macro: 1.0000
+  roc_auc: 1.0000
+
+XGBoost:
+  accuracy: 1.0000
+  precision_macro: 1.0000
+  recall_macro: 1.0000
+  f1_macro: 1.0000
+  roc_auc: 1.0000
+
+REGRESSION MODELS
+----------------------------------------
+
+Linear_Regression:
+  rmse: 6244.00
+  mae: 3767.14
+  r2: -0.0001
+  mape: 369.83%
+
+Random_Forest:
+  rmse: 6408.32
+  mae: 4142.68
+  r2: -0.0534
+  mape: 452.59%
+
+XGBoost:
+  rmse: 6249.34
+  mae: 3767.76
+  r2: -0.0018
+  mape: 369.80%
+
+======================================================================
+END OF REPORT
+======================================================================

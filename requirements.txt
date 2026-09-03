@@ -1,0 +1,53 @@
+# ============================================
+# EMIPredict AI - Requirements File
+# Financial Risk Assessment Platform
+# ============================================
+
+# ============================================
+# Core Data Processing
+# ============================================
+pandas>=1.5.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# ============================================
+# Machine Learning Libraries
+# ============================================
+scikit-learn>=1.2.0
+xgboost>=1.7.0
+lightgbm>=3.3.0
+catboost>=1.0.0
+
+# ============================================
+# Visualization
+# ============================================
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.13.0
+
+# ============================================
+# MLflow - Experiment Tracking
+# ============================================
+mlflow>=2.3.0
+
+# ============================================
+# Streamlit - Web Application
+# ============================================
+streamlit>=1.25.0
+streamlit-option-menu>=0.3.0
+
+# ============================================
+# Utilities
+# ============================================
+joblib>=1.2.0
+tqdm>=4.65.0
+openpyxl>=3.1.0
+kagglehub>=0.1.0
+
+# ============================================
+# Additional Dependencies (if needed)
+# ============================================
+# tensorflow>=2.12.0    # Uncomment if using TensorFlow
+# torch>=2.0.0          # Uncomment if using PyTorch
+# dlib>=19.24.0         # Uncomment for facial recognition
+# opencv-python>=4.8.0  # Uncomment for computer vision
