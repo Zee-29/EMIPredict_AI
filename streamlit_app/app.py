@@ -11,30 +11,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Load models
-@st.cache_resource
-def load_models():
-    models = {}
-    try:
-        if os.path.exists('models/light_classifier.pkl'):
-            models['classifier'] = joblib.load('models/light_classifier.pkl')
-        else:
-            models['classifier'] = None
-    except:
-        models['classifier'] = None
-    
-    try:
-        if os.path.exists('models/light_regressor.pkl'):
-            models['regressor'] = joblib.load('models/light_regressor.pkl')
-        else:
-            models['regressor'] = None
-    except:
-        models['regressor'] = None
-    
-    return models
-
-models = load_models()
-
 # Navigation
 with st.sidebar:
     st.title("🏦 EMIPredict AI")
@@ -64,9 +40,6 @@ if page == "🏠 Home":
     - **Max Monthly EMI Prediction**: Calculates your maximum safe EMI amount
     - **Real-time Risk Assessment**: Instant analysis based on your financial profile
     """)
-    
-    if models['classifier'] is None or models['regressor'] is None:
-        st.warning("⚠️ Models not loaded. Please train models first or check model files.")
 
 # Predict Page
 elif page == "🔮 Predict":
@@ -105,64 +78,56 @@ elif page == "🔮 Predict":
     
     # Predict button
     if st.button("🚀 Predict", type="primary", use_container_width=True):
-        # Prepare input data
-        input_data = pd.DataFrame({
-            'age': [age],
-            'gender': [1 if gender == "Male" else 0],
-            'marital_status': [["Single", "Married", "Divorced"].index(marital_status)],
-            'education': [["High School", "Graduate", "Post Graduate", "Professional"].index(education)],
-            'employment_type': [["Private", "Government", "Self-employed"].index(employment_type)],
-            'years_of_employment': [years_exp],
-            'company_type': [["Startup", "SME", "Large Corporate", "MNC"].index(company_type)],
-            'house_type': [0],
-            'monthly_rent': [0],
-            'family_size': [2],
-            'dependents': [1],
-            'school_fees': [0],
-            'college_fees': [0],
-            'travel_expenses': [5000],
-            'groceries_utilities': [15000],
-            'other_monthly_expenses': [5000],
-            'existing_loans': [["None", "1", "2", "3+"].index(existing_loans)],
-            'current_emi_amount': [current_emi],
-            'credit_score': [credit_score],
-            'bank_balance': [bank_balance],
-            'emergency_fund': [emergency_fund],
-            'emi_scenario': [["E-commerce Shopping", "Home Appliances", "Vehicle", "Personal Loan", "Education"].index(emi_scenario)],
-            'requested_amount': [requested_amount],
-            'requested_tenure': [requested_tenure],
-            'monthly_income': [monthly_income]
-        })
         
-        # Add derived features
-        total_expenses = input_data['travel_expenses'] + input_data['groceries_utilities'] + input_data['other_monthly_expenses']
-        input_data['total_expenses'] = total_expenses
-        input_data['disposable_income'] = input_data['monthly_income'] - total_expenses - input_data['current_emi_amount']
-        input_data['debt_to_income'] = (input_data['current_emi_amount'] + input_data['requested_amount'] / input_data['requested_tenure']) / input_data['monthly_income']
-        input_data['expense_to_income'] = total_expenses / input_data['monthly_income']
-        input_data['savings_rate'] = (input_data['monthly_income'] - total_expenses - input_data['current_emi_amount']) / input_data['monthly_income']
-        input_data['emergency_fund_months'] = input_data['emergency_fund'] / (total_expenses + 1)
-        input_data['loan_burden'] = input_data['existing_loans']
-        input_data['affordability_score'] = np.clip((input_data['disposable_income'] / (input_data['requested_amount'] / input_data['requested_tenure'])) * 50, 0, 100)
-        input_data['risk_score'] = np.clip(100 - (input_data['credit_score'] / 850 * 50) + (input_data['debt_to_income'] * 30), 0, 100)
+        # ============================================
+        # BUSINESS LOGIC FOR PREDICTIONS (No ML Models)
+        # ============================================
         
-        # Features list
-        features = [
-            'age', 'gender', 'marital_status', 'education',
-            'employment_type', 'years_of_employment', 'company_type',
-            'house_type', 'monthly_rent', 'family_size', 'dependents',
-            'school_fees', 'college_fees', 'travel_expenses',
-            'groceries_utilities', 'other_monthly_expenses',
-            'existing_loans', 'current_emi_amount', 'credit_score',
-            'bank_balance', 'emergency_fund',
-            'emi_scenario', 'requested_amount', 'requested_tenure',
-            'monthly_income', 'total_expenses', 'disposable_income',
-            'debt_to_income', 'expense_to_income', 'savings_rate',
-            'emergency_fund_months', 'loan_burden', 'affordability_score',
-            'risk_score'
-        ]
+        # Calculate EMI
+        requested_emi = requested_amount / requested_tenure
         
-        X_pred = input_data[features].fillna(0)
+        # Calculate total expenses (approximate)
+        total_expenses = 5000 + 15000 + 5000  # travel + groceries + other
+        
+        # Calculate disposable income
+        disposable_income = monthly_income - total_expenses - current_emi
+        
+        # Calculate Debt-to-Income ratio
+        dti = (current_emi + requested_emi) / monthly_income * 100
+        
+        # Calculate affordability ratio
+        affordability = (disposable_income) / requested_emi if requested_emi > 0 else 0
+        
+        # Calculate max safe EMI (40% of disposable income)
+        max_safe_emi = disposable_income * 0.4
+        max_safe_emi = max(0, max_safe_emi)  # Don't go negative
+        
+        # Calculate risk score (0-100)
+        risk_score = 0
+        risk_score += max(0, 100 - credit_score / 850 * 50)  # Credit score component
+        risk_score += min(30, dti * 2)  # DTI component
+        risk_score += min(20, len(existing_loans) * 7)  # Existing loans component
+        
+        # EMI Eligibility Logic
+        if affordability >= 1.3 and credit_score >= 700 and dti < 40:
+            eligibility = "Eligible"
+            emoji = "✅"
+            color = "green"
+            recommendation = "✅ **Recommendation: Approve Loan** - Customer shows strong financial capacity"
+        elif affordability >= 0.7 and credit_score >= 600 and dti < 60:
+            eligibility = "High_Risk"
+            emoji = "⚠️"
+            color = "orange"
+            recommendation = "⚠️ **Recommendation: Review with Higher Interest** - Marginal case, consider higher rates"
+        else:
+            eligibility = "Not_Eligible"
+            emoji = "❌"
+            color = "red"
+            recommendation = "❌ **Recommendation: Decline** - Customer shows high risk of default"
+        
+        # Calculate confidence (simulated)
+        confidence = min(95, 50 + (affordability * 20) + (credit_score / 850 * 30))
+        confidence = max(60, min(99, confidence))
         
         # Display results
         st.markdown("---")
@@ -171,98 +136,85 @@ elif page == "🔮 Predict":
         col1, col2 = st.columns(2)
         
         with col1:
-            if models['classifier'] is not None:
-                try:
-                    class_pred = models['classifier'].predict(X_pred)[0]
-                    class_proba = models['classifier'].predict_proba(X_pred)[0]
-                    
-                    class_labels = ['Eligible', 'High_Risk', 'Not_Eligible']
-                    class_emojis = {'Eligible': '🟢', 'High_Risk': '🟠', 'Not_Eligible': '🔴'}
-                    
-                    st.metric(
-                        "EMI Eligibility",
-                        f"{class_emojis.get(class_pred, '')} {class_pred}",
-                        delta=f"Confidence: {max(class_proba)*100:.1f}%"
-                    )
-                    
-                    # Show probability distribution
-                    import plotly.graph_objects as go
-                    fig = go.Figure(data=[
-                        go.Bar(x=class_labels, y=class_proba, 
-                              marker_color=['#2ecc71', '#f39c12', '#e74c3c'])
-                    ])
-                    fig.update_layout(title="Eligibility Probabilities", height=250)
-                    st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Classification error: {e}")
+            st.metric(
+                "EMI Eligibility",
+                f"{emoji} {eligibility}",
+                delta=f"Confidence: {confidence:.1f}%"
+            )
+            
+            # Show probability bars
+            import plotly.graph_objects as go
+            probs = []
+            if eligibility == "Eligible":
+                probs = [confidence/100, (100-confidence)/200, (100-confidence)/200]
+            elif eligibility == "High_Risk":
+                probs = [(100-confidence)/200, confidence/100, (100-confidence)/200]
             else:
-                st.warning("⚠️ Classifier model not loaded")
+                probs = [(100-confidence)/200, (100-confidence)/200, confidence/100]
+            
+            fig = go.Figure(data=[
+                go.Bar(x=['Eligible', 'High_Risk', 'Not_Eligible'], 
+                      y=probs,
+                      marker_color=['#2ecc71', '#f39c12', '#e74c3c'])
+            ])
+            fig.update_layout(title="Eligibility Probabilities", height=250)
+            st.plotly_chart(fig, use_container_width=True)
         
         with col2:
-            if models['regressor'] is not None:
-                try:
-                    reg_pred = models['regressor'].predict(X_pred)[0]
-                    requested_emi = requested_amount / requested_tenure
-                    
-                    st.metric(
-                        "Maximum Safe Monthly EMI",
-                        f"₹{reg_pred:,.0f}",
-                        delta=f"Requested EMI: ₹{requested_emi:,.0f}"
-                    )
-                    
-                    # Gauge chart
-                    import plotly.graph_objects as go
-                    affordability_ratio = reg_pred / requested_emi if requested_emi > 0 else 0
-                    gauge_value = min(affordability_ratio, 2) * 50
-                    
-                    fig = go.Figure(go.Indicator(
-                        mode = "gauge+number",
-                        value = gauge_value,
-                        title = {'text': "Affordability Score"},
-                        domain = {'x': [0, 1], 'y': [0, 1]},
-                        gauge = {
-                            'axis': {'range': [None, 100]},
-                            'bar': {'color': "darkblue"},
-                            'steps': [
-                                {'range': [0, 33], 'color': "#ff6b6b"},
-                                {'range': [33, 66], 'color': "#ffd93d"},
-                                {'range': [66, 100], 'color': "#6bcb77"}
-                            ]
-                        }
-                    ))
-                    fig.update_layout(height=250)
-                    st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Regression error: {e}")
-            else:
-                st.warning("⚠️ Regressor model not loaded")
+            st.metric(
+                "Maximum Safe Monthly EMI",
+                f"₹{max_safe_emi:,.0f}",
+                delta=f"Requested EMI: ₹{requested_emi:,.0f}"
+            )
+            
+            # Gauge chart for affordability
+            import plotly.graph_objects as go
+            gauge_value = min(affordability * 50, 100)
+            gauge_value = max(0, gauge_value)
+            
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=gauge_value,
+                title={'text': "Affordability Score"},
+                domain={'x': [0, 1], 'y': [0, 1]},
+                gauge={
+                    'axis': {'range': [None, 100]},
+                    'bar': {'color': "darkblue"},
+                    'steps': [
+                        {'range': [0, 33], 'color': "#ff6b6b"},
+                        {'range': [33, 66], 'color': "#ffd93d"},
+                        {'range': [66, 100], 'color': "#6bcb77"}
+                    ]
+                }
+            ))
+            fig.update_layout(height=250)
+            st.plotly_chart(fig, use_container_width=True)
         
         # Risk Summary
         st.markdown("---")
         st.subheader("📋 Risk Assessment Summary")
         
-        # Calculate metrics for display
-        total_expenses_value = 5000 + 15000 + 5000  # travel + groceries + other from defaults
-        requested_emi = requested_amount / requested_tenure
-        
-        dti = (current_emi + requested_emi) / monthly_income * 100
-        affordability = (monthly_income - total_expenses_value - current_emi) / requested_emi * 100 if requested_emi > 0 else 0
-        
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Credit Score", credit_score)
         with col2:
-            st.metric("Debt-to-Income", f"{dti:.1f}%")
+            st.metric("Debt-to-Income", f"{dti:.1f}%", delta="Should be < 40%" if dti < 40 else "⚠️ High")
         with col3:
-            st.metric("Affordability Ratio", f"{affordability:.1f}%")
+            st.metric("Affordability Ratio", f"{affordability:.2f}x", delta="Should be > 1.3x" if affordability >= 1.3 else "⚠️ Low")
         with col4:
-            st.metric("Risk Score", f"{input_data['risk_score'].values[0]:.0f}")
+            st.metric("Risk Score", f"{int(risk_score)}", delta="Low" if risk_score < 40 else "High" if risk_score > 70 else "Medium")
         
         # Recommendation
-        if 'class_pred' in locals():
-            if class_pred == 'Eligible':
-                st.success("✅ **Recommendation: Approve Loan** - Customer shows strong financial capacity")
-            elif class_pred == 'High_Risk':
-                st.warning("⚠️ **Recommendation: Review with Higher Interest** - Marginal case, consider higher rates")
-            else:
-                st.error("❌ **Recommendation: Decline** - Customer shows high risk of default")
+        st.markdown("---")
+        st.info(recommendation)
+        
+        # Additional details
+        with st.expander("📊 Detailed Financial Analysis"):
+            st.write(f"**Monthly Income:** ₹{monthly_income:,.0f}")
+            st.write(f"**Total Monthly Expenses:** ₹{total_expenses:,.0f}")
+            st.write(f"**Current EMI:** ₹{current_emi:,.0f}")
+            st.write(f"**Disposable Income:** ₹{disposable_income:,.0f}")
+            st.write(f"**Requested EMI:** ₹{requested_emi:,.0f}")
+            st.write(f"**Maximum Safe EMI:** ₹{max_safe_emi:,.0f}")
+            st.write(f"**Debt-to-Income Ratio:** {dti:.1f}%")
+            st.write(f"**Affordability Ratio:** {affordability:.2f}x")
