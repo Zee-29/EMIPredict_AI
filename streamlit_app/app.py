@@ -177,7 +177,6 @@ elif page == "🔮 Predict":
                     class_proba = models['classifier'].predict_proba(X_pred)[0]
                     
                     class_labels = ['Eligible', 'High_Risk', 'Not_Eligible']
-                    class_colors = {'Eligible': '✅', 'High_Risk': '⚠️', 'Not_Eligible': '❌'}
                     class_emojis = {'Eligible': '🟢', 'High_Risk': '🟠', 'Not_Eligible': '🔴'}
                     
                     st.metric(
@@ -242,14 +241,19 @@ elif page == "🔮 Predict":
         st.markdown("---")
         st.subheader("📋 Risk Assessment Summary")
         
+        # Calculate metrics for display
+        total_expenses_value = 5000 + 15000 + 5000  # travel + groceries + other from defaults
+        requested_emi = requested_amount / requested_tenure
+        
+        dti = (current_emi + requested_emi) / monthly_income * 100
+        affordability = (monthly_income - total_expenses_value - current_emi) / requested_emi * 100 if requested_emi > 0 else 0
+        
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Credit Score", credit_score)
         with col2:
-            dti = (current_emi + requested_amount/requested_tenure) / monthly_income * 100
             st.metric("Debt-to-Income", f"{dti:.1f}%")
         with col3:
-            affordability = (monthly_income - total_expenses - current_emi) / (requested_amount/requested_tenure) * 100
             st.metric("Affordability Ratio", f"{affordability:.1f}%")
         with col4:
             st.metric("Risk Score", f"{input_data['risk_score'].values[0]:.0f}")
